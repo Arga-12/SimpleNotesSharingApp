@@ -1,0 +1,54 @@
+version: "3.8"
+services:
+  db:
+    image: postgres:latest
+    container_name: auth-db
+    hostname: postgres_db # Opsional tapi disarankan
+    environment:
+      POSTGRES_USER: pgandul
+      POSTGRES_PASSWORD: postgreroot
+      POSTGRES_DB: authdb
+    ports:
+      - "5432:5432" 
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck: # Disarankan untuk mengatasi masalah timing
+      test: ["CMD-SHELL", "pg_isready -U pgandul -d authdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: ./app/backend
+    container_name: auth-app
+    ports:
+      - "8080:8080" 
+    environment:
+      # --- KOREKSI PENAMAAN VARIABEL LINGKUNGAN DI SINI ---
+      DB_HOST: db               # <--- Menggunakan nama SERVICE 'db'
+      DB_PORT: 5432
+      DB_USER: pgandul
+      DB_PASSWORD: postgreroot
+      DB_NAME: authdb
+      PORT: 8080
+      JWT_SECRET: Argandull_Ochaskull # Jika Anda ingin menimpa nilai default
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: node:20-alpine
+    container_name: auth-frontend
+    working_dir: /usr/src/app
+    volumes:
+      - ./app/frontend:/usr/src/app
+    environment:
+      NEXT_TELEMETRY_DISABLED: 1
+      NEXT_PUBLIC_API_URL: "http://auth-app:8080"   # tambahkan ini!
+      HOST: 0.0.0.0   
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev"
+
+volumes:
+  db_data:

@@ -1,0 +1,2 @@
+# jalankan psql pada docker
+docker exec -it auth-db psql -U pgandul -d authdb

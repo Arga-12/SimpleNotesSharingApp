@@ -26,8 +26,11 @@ func (h *NotesHandler) HandleNotes(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		// GET /notes → Return ALL notes from all users
-		rows, err := h.DB.Query(`SELECT id, owner_id, title, content, shared, favorite, updated_at 
-			FROM notes ORDER BY updated_at DESC`)
+		rows, err := h.DB.Query(`
+			SELECT n.id, n.owner_id, u.username, n.title, n.content, n.shared, n.favorite, n.updated_at
+			FROM notes n
+			JOIN users u ON u.id = n.owner_id
+			ORDER BY n.updated_at DESC`)
 		if err != nil {
 			jsonError(w, "db error: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -37,7 +40,7 @@ func (h *NotesHandler) HandleNotes(w http.ResponseWriter, r *http.Request) {
 		var notes []models.Note
 		for rows.Next() {
 			var n models.Note
-			if err := rows.Scan(&n.ID, &n.OwnerID, &n.Title, &n.Content, &n.Shared, &n.Favorite, &n.Updated); err == nil {
+			if err := rows.Scan(&n.ID, &n.OwnerID, &n.OwnerUsername, &n.Title, &n.Content, &n.Shared, &n.Favorite, &n.Updated); err == nil {
 				notes = append(notes, n)
 			}
 		}
@@ -69,6 +72,7 @@ func (h *NotesHandler) HandleNotes(w http.ResponseWriter, r *http.Request) {
 		req.ID = id
 		req.OwnerID = userID
 		req.Updated = time.Now()
+		_ = h.DB.QueryRow(`SELECT username FROM users WHERE id=$1`, userID).Scan(&req.OwnerUsername)
 		jsonResponse(w, req, http.StatusCreated)
 
 	default:
@@ -94,9 +98,9 @@ func (h *NotesHandler) HandleNoteByID(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		// GET /notes/{id} → Any logged-in user can view any note
 		var n models.Note
-		q := `SELECT id, owner_id, title, content, shared, favorite, updated_at 
-		      FROM notes WHERE id=$1`
-		err := h.DB.QueryRow(q, noteID).Scan(&n.ID, &n.OwnerID, &n.Title, &n.Content, &n.Shared, &n.Favorite, &n.Updated)
+		q := `SELECT n.id, n.owner_id, u.username, n.title, n.content, n.shared, n.favorite, n.updated_at 
+		      FROM notes n JOIN users u ON u.id = n.owner_id WHERE n.id=$1`
+		err := h.DB.QueryRow(q, noteID).Scan(&n.ID, &n.OwnerID, &n.OwnerUsername, &n.Title, &n.Content, &n.Shared, &n.Favorite, &n.Updated)
 		if err != nil {
 			jsonError(w, "note not found", http.StatusNotFound)
 			return

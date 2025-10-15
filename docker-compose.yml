@@ -3,17 +3,17 @@ services:
   db:
     image: postgres:latest
     container_name: auth-db
-    hostname: postgres_db # Opsional tapi disarankan
+    hostname: localhost # Opsional tapi disarankan
     environment:
-      POSTGRES_USER: pgandul
-      POSTGRES_PASSWORD: postgreroot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: authdb
     ports:
       - "5432:5432" 
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck: # Disarankan untuk mengatasi masalah timing
-      test: ["CMD-SHELL", "pg_isready -U pgandul -d authdb"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d authdb"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,8 +27,8 @@ services:
       # --- KOREKSI PENAMAAN VARIABEL LINGKUNGAN DI SINI ---
       DB_HOST: db               # <--- Menggunakan nama SERVICE 'db'
       DB_PORT: 5432
-      DB_USER: pgandul
-      DB_PASSWORD: postgreroot
+      DB_USER: postgres
+      DB_PASSWORD: postgres
       DB_NAME: authdb
       PORT: 8080
       JWT_SECRET: Argandull_Ochaskull # Jika Anda ingin menimpa nilai default
@@ -50,5 +50,19 @@ services:
       - "3000:3000"
     command: sh -c "npm install && npm run dev"
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: auth-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
 volumes:
   db_data:
+  pgadmin_data:

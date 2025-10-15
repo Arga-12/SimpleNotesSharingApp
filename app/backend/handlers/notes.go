@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/yourname/fullstack-auth-backend/middlewares"
-	"github.com/yourname/fullstack-auth-backend/models"
+	"github.com/Arga-12/SimpleNotesSharingApp/app/backend/middlewares"
+	"github.com/Arga-12/SimpleNotesSharingApp/app/backend/models"
 )
 
 type NotesHandler struct {
@@ -16,6 +16,7 @@ type NotesHandler struct {
 }
 
 func (h *NotesHandler) HandleNotes(w http.ResponseWriter, r *http.Request) {
+	// All notes endpoints require JWT
 	userID, err := middlewares.GetUserIDFromCookie(r)
 	if err != nil {
 		jsonError(w, "unauthorized", http.StatusUnauthorized)
@@ -24,8 +25,9 @@ func (h *NotesHandler) HandleNotes(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
+		// GET /notes → Return ALL notes from all users
 		rows, err := h.DB.Query(`SELECT id, owner_id, title, content, shared, favorite, updated_at 
-			FROM notes WHERE owner_id=$1 ORDER BY updated_at DESC`, userID)
+			FROM notes ORDER BY updated_at DESC`)
 		if err != nil {
 			jsonError(w, "db error: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -37,10 +39,11 @@ func (h *NotesHandler) HandleNotes(w http.ResponseWriter, r *http.Request) {
 			var n models.Note
 			if err := rows.Scan(&n.ID, &n.OwnerID, &n.Title, &n.Content, &n.Shared, &n.Favorite, &n.Updated); err == nil {
 				notes = append(notes, n)
-			} else if len(notes) == 0 {
-				jsonResponse(w, []models.Note{}, http.StatusOK)
-				return
 			}
+		}
+		if len(notes) == 0 {
+			jsonResponse(w, []models.Note{}, http.StatusOK)
+			return
 		}
 		jsonResponse(w, notes, http.StatusOK)
 
@@ -89,6 +92,7 @@ func (h *NotesHandler) HandleNoteByID(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
+		// GET /notes/{id} → Any logged-in user can view any note
 		var n models.Note
 		q := `SELECT id, owner_id, title, content, shared, favorite, updated_at 
 		      FROM notes WHERE id=$1`
@@ -97,27 +101,13 @@ func (h *NotesHandler) HandleNoteByID(w http.ResponseWriter, r *http.Request) {
 			jsonError(w, "note not found", http.StatusNotFound)
 			return
 		}
-		if n.OwnerID != userID && !n.Shared {
-			jsonError(w, "forbidden", http.StatusForbidden)
-			return
-		}
 		jsonResponse(w, n, http.StatusOK)
 
 	case http.MethodPut:
+		// PUT /notes/{id} → Any logged-in user can update any note
 		var req models.Note
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			jsonError(w, "invalid json", http.StatusBadRequest)
-			return
-		}
-
-		var ownerID int
-		err := h.DB.QueryRow(`SELECT owner_id FROM notes WHERE id=$1`, noteID).Scan(&ownerID)
-		if err != nil {
-			jsonError(w, "note not found", http.StatusNotFound)
-			return
-		}
-		if ownerID != userID {
-			jsonError(w, "forbidden", http.StatusForbidden)
 			return
 		}
 
@@ -131,8 +121,9 @@ func (h *NotesHandler) HandleNoteByID(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, map[string]string{"message": "updated"}, http.StatusOK)
 
 	case http.MethodDelete:
+		// DELETE /notes/{id} → Only owner can delete
 		var ownerID int
-		err := h.DB.QueryRow(`SELECT owner_id FROM notes WHERE id=$1`, noteID).Scan(&ownerID)
+		err = h.DB.QueryRow(`SELECT owner_id FROM notes WHERE id=$1`, noteID).Scan(&ownerID)
 		if err != nil {
 			jsonError(w, "note not found", http.StatusNotFound)
 			return

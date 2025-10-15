@@ -4,10 +4,10 @@ import "time"
 
 type Note struct {
 	ID       int       `json:"id"`
-	OwnerID  int       `json:"owner_id"`
+	OwnerID  int       `json:"ownerId"`
 	Title    string    `json:"title"`
 	Content  string    `json:"content"`
 	Shared   bool      `json:"shared"`
 	Favorite bool      `json:"favorite"`
-	Updated  time.Time `json:"updated_at"`
+	Updated  time.Time `json:"updatedAt"`
 }

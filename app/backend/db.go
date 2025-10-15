@@ -12,11 +12,44 @@ import (
 	_ "github.com/lib/pq" // masih pakai pq
 )
 
-func InitDB() *sql.DB {
-	psql := fmt.Sprintf(
+// DBConfig holds database connection configuration
+type DBConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Name     string
+}
+
+// LoadDBConfig loads database configuration from environment variables
+func LoadDBConfig() *DBConfig {
+	return &DBConfig{
+		Host:     getenv("DB_HOST", "localhost"),
+		Port:     getenv("DB_PORT", "5432"),
+		User:     getenv("DB_USER", "postgres"),
+		Password: getenv("DB_PASSWORD", "postgres"),
+		Name:     getenv("DB_NAME", "authdb"),
+	}
+}
+
+// GetConnectionString returns PostgreSQL connection string from config
+func (c *DBConfig) GetConnectionString() string {
+	return fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		DBHost, DBPort, DBUser, DBPass, DBName,
+		c.Host, c.Port, c.User, c.Password, c.Name,
 	)
+}
+
+func getenv(k, fallback string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func InitDB() *sql.DB {
+	config := LoadDBConfig()
+	psql := config.GetConnectionString()
 
 	db, err := sql.Open("postgres", psql)
 	if err != nil {

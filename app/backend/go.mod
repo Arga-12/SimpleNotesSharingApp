@@ -1,4 +1,4 @@
-module github.com/yourname/fullstack-auth-backend
+module github.com/Arga-12/SimpleNotesSharingApp/app/backend
 
 go 1.25.2
 

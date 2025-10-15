@@ -6,22 +6,18 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/yourname/fullstack-auth-backend/handlers"
-	"github.com/yourname/fullstack-auth-backend/middlewares"
-)
-
-var (
-	DBHost = getenv("DB_HOST", "localhost")
-	DBPort = getenv("DB_PORT", "5432")
-	DBUser = getenv("DB_USER", "pgandul")
-	DBPass = getenv("DB_PASSWORD", "postgreroot")
-	DBName = getenv("DB_NAME", "authdb")
-	Port   = getenv("PORT", "8080")
+	"github.com/Arga-12/SimpleNotesSharingApp/app/backend/handlers"
+	"github.com/Arga-12/SimpleNotesSharingApp/app/backend/middlewares"
 )
 
 func main() {
+	// Load server configuration
+	serverPort := getenvLocal("PORT", "8080")
 	db := InitDB()
 	defer db.Close()
+
+	// Set database for logging middleware
+	middlewares.SetLogDB(db)
 
 	// Initialize handlers
 	authHandler := &handlers.AuthHandler{DB: db}
@@ -40,14 +36,13 @@ func main() {
 	mux.Handle("/api/notes", middlewares.Logging(http.HandlerFunc(notesHandler.HandleNotes)))
 	mux.Handle("/api/notes/", middlewares.Logging(http.HandlerFunc(notesHandler.HandleNoteByID)))
 
-	addr := ":" + Port
+	addr := ":" + serverPort
 	log.Printf("backend listening on %s", addr)
 	if err := http.ListenAndServe(addr, middlewares.AllowLocalhostCookies(mux)); err != nil {
 		log.Fatalf("server: %v", err)
 	}
 }
-
-func getenv(k, fallback string) string {
+func getenvLocal(k, fallback string) string {
 	if v := os.Getenv(k); v != "" {
 		return v
 	}

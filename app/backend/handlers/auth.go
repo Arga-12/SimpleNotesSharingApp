@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/yourname/fullstack-auth-backend/middlewares"
-	"github.com/yourname/fullstack-auth-backend/models"
+	"github.com/Arga-12/SimpleNotesSharingApp/app/backend/middlewares"
+	"github.com/Arga-12/SimpleNotesSharingApp/app/backend/models"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -62,7 +62,7 @@ func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Expires:  time.Now().Add(24 * time.Hour),
 		Secure:   false,
-		SameSite: http.SameSiteNoneMode,
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	u := models.User{ID: id, Username: req.Username, Email: req.Email, CreatedAt: createdAt}
@@ -109,7 +109,7 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Expires:  time.Now().Add(24 * time.Hour),
 		Secure:   false,
-		SameSite: http.SameSiteNoneMode,
+		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
 	jsonResponse(w, map[string]string{"message": "logged in"}, http.StatusOK)

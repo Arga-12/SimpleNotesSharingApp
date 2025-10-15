@@ -61,7 +61,7 @@
 
 ---
 
-## 📝 Contoh .env
+## Contoh .env
 
 ### Backend (`app/backend/.env`)
 
@@ -121,7 +121,7 @@ HOST=0.0.0.0
 
 ---
 
-## 🖼️ Screenshot Aplikasi
+## Screenshot Aplikasi
 
 - Login: ![Halaman Login](https://imgur.com/oSUmjuh.png)
 - Register: ![Halaman Registrasi](https://imgur.com/ULlUZCR.png)
@@ -129,7 +129,7 @@ HOST=0.0.0.0
 
 ---
 
-## 📊 Contoh Log
+## Contoh Log
 ```json
 {
   "id": 4,

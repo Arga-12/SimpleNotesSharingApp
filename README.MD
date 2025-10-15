@@ -1,243 +1,135 @@
 # SimpleNotesSharingApp
 
-> A full-stack notes sharing application with authentication, built with **Golang**, **PostgreSQL**, **Next.js**, and **Docker**.
-
-## 📋 Features
-
-### Backend (Golang + PostgreSQL + JWT)
-- ✅ User authentication (Register & Login)
-- ✅ JWT-based authorization with HttpOnly cookies
-- ✅ CRUD operations for notes
-- ✅ Owner-only note deletion
-- ✅ Comprehensive request/response logging to PostgreSQL
-- ✅ Auto-migration system
-
-### Frontend (Next.js)
-- ✅ Modern UI with TailwindCSS
-- ✅ User registration and login
-- ✅ Notes management (Create, Read, Update, Delete)
-- ✅ Real-time autosave
-- ✅ Responsive design
-
-### Logging System
-Every API request is logged with:
-- Timestamp (datetime)
-- HTTP method + endpoint
-- Request headers (Authorization masked)
-- Request payload
-- Response body
-- Response status code
-- Request duration (ms)
-- User ID (if authenticated)
-
+> Aplikasi berbagi catatan dengan autentikasi: pengguna dapat registrasi dan login (menghasilkan JWT), melihat dan mengedit catatan milik siapa pun, memerlukan JWT untuk membuat/mengubah catatan, serta hanya pemilik yang dapat menghapus catatan.
 ---
 
-## 🚀 Quick Start
+## Setup
 
-### Prerequisites
-- Docker & Docker Compose installed
-- Git
+### Dengan Docker (direkomendasikan)
+- Tujuan: menjalankan seluruh stack (PostgreSQL, Backend, Frontend, PgAdmin) dengan satu perintah.
 
-### Setup with Docker (Recommended)
-
-1. **Clone the repository**
+1. Clone repo dan jalankan:
    ```bash
    git clone https://github.com/Arga-12/SimpleNotesSharingApp.git
    cd SimpleNotesSharingApp
-   ```
-
-2. **Run with Docker Compose**
-   ```bash
    docker-compose up --build
    ```
-
-3. **Access the application**
+2. Tunggu hingga layanan siap (db healthcheck OK), lalu akses:
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8080
-   - PgAdmin: http://localhost:5050
+   - PgAdmin: http://localhost:5050 (email: admin@admin.com, password: admin)
+3. Catatan penting:
+   - `DB_HOST` pada backend sudah disetel menjadi : `db` via `docker-compose.yml`.
+   - `NEXT_PUBLIC_API_URL` frontend sudah diarahkan ke `http://auth-app:8080` saat di Docker.
+   - Volume `db_data` menyimpan data Postgres agar tidak hilang saat container restart.
+4. Perintah umum:
+   ```bash
+   docker-compose up -d        # start background
+   docker-compose logs -f app  # lihat log backend
+   docker-compose down         # stop semua
+   docker-compose down -v      # stop + hapus volume (reset DB)
+   ```
 
-4. **Default credentials for PgAdmin**
-   - Email: `admin@admin.com`
-   - Password: `admin`
+### Setup Lokal (tanpa Docker)
+- Tujuan: menjalankan backend dan frontend langsung di host Anda untuk pengembangan cepat.
+- Prasyarat: Go 1.20+, Node.js 18+, PostgreSQL 14+ terpasang dan berjalan di 5432.
 
----
-
-## 🛠️ Local Development Setup
-
-### Backend Setup
-
-1. **Navigate to backend directory**
+1. Backend
    ```bash
    cd app/backend
-   ```
-
-2. **Install dependencies**
-   ```bash
+   # siapkan .env sesuai contoh di bawah (DB_HOST=localhost, dst.)
    go mod download
-   ```
-
-3. **Set environment variables** (create `.env` file or export)
-   ```bash
-   export DB_HOST=localhost
-   export DB_PORT=5432
-   export DB_USER=postgres
-   export DB_PASSWORD=postgres
-   export DB_NAME=authdb
-   export PORT=8080
-   export JWT_SECRET=your-secret-key
-   ```
-
-4. **Ensure PostgreSQL is running**
-   ```bash
-   # Using Docker
-   docker run -d \
-     --name postgres-dev \
-     -e POSTGRES_USER=postgres \
-     -e POSTGRES_PASSWORD=postgres \
-     -e POSTGRES_DB=authdb \
-     -p 5432:5432 \
-     postgres:latest
-   ```
-
-5. **Run the backend**
-   ```bash
    go run .
    ```
+   - Akses Backend: http://localhost:8080
+   - DB akan dimigrasi otomatis pada start (folder `app/backend/migrations`).
 
-   Backend will be available at `http://localhost:8080`
-
-### Frontend Setup
-
-1. **Navigate to frontend directory**
+2. Frontend
    ```bash
    cd app/frontend
-   ```
-
-2. **Install dependencies**
-   ```bash
+   # siapkan .env.local (NEXT_PUBLIC_API_URL=http://localhost:8080)
    npm install
-   ```
-
-3. **Run development server**
-   ```bash
    npm run dev
    ```
+   - Akses Frontend: http://localhost:3000
 
-   Frontend will be available at `http://localhost:3000`
+3. Uji cepat (opsional)
+   ```bash
+   # cek backend up
+   curl http://localhost:8080/api/notes -i
+   ```
 
 ---
 
-## 📝 Environment Variables
+## 📝 Contoh .env
 
-### Backend (.env)
+### Backend (`app/backend/.env`)
 
+- Lokal (tanpa Docker):
 ```env
-# Database Configuration
-DB_HOST=localhost          # Database host (use 'db' for Docker)
-DB_PORT=5432              # PostgreSQL port
-DB_USER=postgres          # Database username
-DB_PASSWORD=postgres      # Database password
-DB_NAME=authdb           # Database name
+# Database (lokal)
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=authdb
 
-# Server Configuration
-PORT=8080                # Backend server port
+# Server
+PORT=8080
 
-# JWT Configuration
-JWT_SECRET=your-secret-key-here  # Secret key for JWT signing
+# JWT (ganti dengan secret yang kuat untuk produksi)
+JWT_SECRET=your-secret-key-here
 ```
 
-### Frontend (.env.local)
-
+- Docker Compose (nilai ini sudah diinject via `docker-compose.yml`, tulis di sini hanya jika jalan manual):
 ```env
-# API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:8080  # Backend API URL
+# Database (di dalam Docker network)
+DB_HOST=db                  # nama service Postgres di docker-compose
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=authdb
 
-# Next.js Configuration
+# Server
+PORT=8080
+
+# JWT
+JWT_SECRET=your-docker-secret
+```
+
+### Frontend (`app/frontend/.env.local`)
+
+- Lokal (tanpa Docker):
+```env
+# URL Backend lokal
+NEXT_PUBLIC_API_URL=http://localhost:8080
+
+# Opsional (non-telemetry & binding host)
 NEXT_TELEMETRY_DISABLED=1
 HOST=0.0.0.0
 ```
 
-### Docker Compose (already configured)
+- Docker Compose (biasanya sudah diatur di `docker-compose.yml`):
+```env
+# URL Backend di dalam Docker network (hanya perlu jika override)
+NEXT_PUBLIC_API_URL=http://auth-app:8080
 
-All environment variables are pre-configured in `docker-compose.yml`:
-- Backend connects to PostgreSQL service named `db`
-- Frontend connects to backend service named `auth-app`
-- Persistent volumes for database data
-
----
-
-## 📚 API Endpoints
-
-### Authentication
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/api/register` | Register new user | ❌ |
-| POST | `/api/login` | Login user (returns JWT) | ❌ |
-| GET | `/api/me` | Get current user info | ✅ |
-| POST | `/api/logout` | Logout user | ✅ |
-
-### Notes
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/api/notes` | Get all notes | ✅ |
-| POST | `/api/notes` | Create new note | ✅ |
-| GET | `/api/notes/{id}` | Get note by ID | ✅ |
-| PUT | `/api/notes/{id}` | Update note | ✅ |
-| DELETE | `/api/notes/{id}` | Delete note (owner only) | ✅ |
-
----
-
-## 🗄️ Database Schema
-
-### Users Table
-```sql
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(100) NOT NULL,
-    password TEXT NOT NULL,
-    email VARCHAR(255),
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-### Notes Table
-```sql
-CREATE TABLE notes (
-    id SERIAL PRIMARY KEY,
-    owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    content TEXT,
-    shared BOOLEAN DEFAULT false,
-    favorite BOOLEAN DEFAULT false,
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-### Logs Table
-```sql
-CREATE TABLE logs (
-    id SERIAL PRIMARY KEY,
-    datetime TIMESTAMP DEFAULT NOW(),
-    method VARCHAR(10) NOT NULL,
-    endpoint TEXT NOT NULL,
-    request_headers JSONB,
-    request_payload TEXT,
-    response_body TEXT,
-    response_status INTEGER NOT NULL,
-    duration_ms INTEGER,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
+# Opsional
+NEXT_TELEMETRY_DISABLED=1
+HOST=0.0.0.0
 ```
 
 ---
 
-## 📊 Example Log Entry
+## 🖼️ Screenshot Aplikasi
 
-Berikut contoh log yang dihasilkan sistem (dari tabel `logs`):
+- Login: ![Halaman Login](https://imgur.com/oSUmjuh.png)
+- Register: ![Halaman Registrasi](https://imgur.com/ULlUZCR.png)
+- Dashboard Catatan dan Editor Catatan: ![Dashboard Catatan](https://imgur.com/qbv1F0F.png)
 
+---
+
+## 📊 Contoh Log
 ```json
 {
   "id": 4,
@@ -249,13 +141,21 @@ Berikut contoh log yang dihasilkan sistem (dari tabel `logs`):
     "Cookie": "***MASKED***",
     "Origin": "http://localhost:3000",
     "Referer": "http://localhost:3000/login",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Sec-Ch-Ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Opera GX\";v=\"122\"",
+    "Connection": "close",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0",
     "Content-Type": "application/json",
     "Content-Length": "51",
+    "Sec-Fetch-Dest": "empty",
     "Sec-Fetch-Mode": "cors",
-    "Accept-Encoding": "gzip, deflate, br, zstd"
+    "Sec-Fetch-Site": "same-origin",
+    "Accept-Encoding": "gzip, deflate, br, zstd",
+    "Accept-Language": "en-US,en;q=0.9,id;q=0.8,fr;q=0.7,de;q=0.6,ja;q=0.5,th;q=0.4,ru;q=0.3",
+    "Sec-Ch-Ua-Mobile": "?0",
+    "X-Forwarded-Host": "localhost:3000",
+    "Sec-Ch-Ua-Platform": "\"Windows\""
   },
-  "request_payload": "{\"username\":\"abyanpaboss\",\"password\":\"abyanpaboss\"}",
+  "request_payload": "{\"username\":\"redacted\",\"password\":\"redacted\"}",
   "response_body": "{\"message\":\"logged in\"}",
   "response_status": 200,
   "duration_ms": 48,
@@ -264,188 +164,6 @@ Berikut contoh log yang dihasilkan sistem (dari tabel `logs`):
 }
 ```
 
-### Query untuk melihat logs:
-```sql
--- Lihat 10 log terakhir
-SELECT * FROM logs ORDER BY datetime DESC LIMIT 10;
-
--- Lihat log berdasarkan user
-SELECT * FROM logs WHERE user_id = 1;
-
--- Lihat log error (status >= 400)
-SELECT * FROM logs WHERE response_status >= 400;
-
--- Lihat log endpoint tertentu
-SELECT * FROM logs WHERE endpoint LIKE '/api/notes%';
-```
-
 ---
 
-## 🖼️ Screenshots
-
-### Login Page
-![Login Page](docs/screenshots/login.png)
-
-### Register Page
-![Register Page](docs/screenshots/register.png)
-
-### Notes Dashboard
-![Notes Dashboard](docs/screenshots/notes.png)
-
-### Note Editor
-![Note Editor](docs/screenshots/editor.png)
-
----
-
-## 🐳 Docker Services
-
-| Service | Container Name | Port | Description |
-|---------|---------------|------|-------------|
-| Backend | `auth-app` | 8080 | Golang API server |
-| Frontend | `auth-frontend` | 3000 | Next.js application |
-| Database | `auth-db` | 5432 | PostgreSQL database |
-| PgAdmin | `auth-pgadmin` | 5050 | Database management UI |
-
-### Docker Commands
-
-```bash
-# Start all services
-docker-compose up -d
-
-# Stop all services
-docker-compose down
-
-# View logs
-docker-compose logs -f
-
-# Rebuild services
-docker-compose up --build
-
-# Remove volumes (reset database)
-docker-compose down -v
-```
-
----
-
-## 🔧 Troubleshooting
-
-### Backend tidak bisa connect ke database
-- Pastikan PostgreSQL sudah running
-- Cek environment variables `DB_HOST`, `DB_PORT`, dll.
-- Untuk Docker: gunakan `DB_HOST=db` (nama service)
-- Untuk local: gunakan `DB_HOST=localhost`
-
-### Frontend tidak bisa fetch API
-- Pastikan backend sudah running di port 8080
-- Cek CORS settings di `middlewares/cors.go`
-- Pastikan cookie credentials diaktifkan
-
-### Migration error
-- Pastikan folder `migrations/` ada di container
-- Cek Dockerfile: `COPY --from=builder /app/migrations ./migrations`
-- Lihat log: `docker-compose logs auth-app`
-
----
-
-## 📦 Project Structure
-
-```
-.
-├── app/
-│   ├── backend/              # Golang backend
-│   │   ├── handlers/         # HTTP handlers
-│   │   ├── middlewares/      # Auth, CORS, Logging
-│   │   ├── models/           # Data models
-│   │   ├── migrations/       # SQL migrations
-│   │   ├── main.go          # Entry point
-│   │   ├── db.go            # Database connection
-│   │   ├── Dockerfile       # Backend container
-│   │   └── go.mod           # Go dependencies
-│   └── frontend/            # Next.js frontend
-│       ├── pages/           # Next.js pages
-│       ├── lib/             # API utilities
-│       ├── styles/          # CSS styles
-│       └── package.json     # Node dependencies
-├── docker-compose.yml       # Docker orchestration
-└── README.md               # This file
-```
-
----
-
-## 🧪 Testing
-
-### Test Authentication
-```bash
-# Register
-curl -X POST http://localhost:8080/api/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"testuser","email":"test@example.com","password":"password123"}'
-
-# Login
-curl -X POST http://localhost:8080/api/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"testuser","password":"password123"}' \
-  -c cookies.txt
-
-# Get current user
-curl http://localhost:8080/api/me -b cookies.txt
-```
-
-### Test Notes
-```bash
-# Create note
-curl -X POST http://localhost:8080/api/notes \
-  -H "Content-Type: application/json" \
-  -b cookies.txt \
-  -d '{"title":"My Note","content":"Hello World","shared":false,"favorite":false}'
-
-# Get all notes
-curl http://localhost:8080/api/notes -b cookies.txt
-
-# Delete note
-curl -X DELETE http://localhost:8080/api/notes/1 -b cookies.txt
-```
-
----
-
-## 👨‍💻 Development
-
-### Tech Stack
-- **Backend**: Go 1.25, PostgreSQL, JWT
-- **Frontend**: Next.js 15, React 19, TailwindCSS 4
-- **Deployment**: Docker, Docker Compose
-
-### Dependencies
-
-**Backend:**
-- `github.com/golang-jwt/jwt/v5` - JWT authentication
-- `github.com/lib/pq` - PostgreSQL driver
-- `golang.org/x/crypto` - Password hashing
-
-**Frontend:**
-- `next` - React framework
-- `react` & `react-dom` - UI library
-- `tailwindcss` - CSS framework
-
----
-
-## 📄 License
-
-MIT License - feel free to use this project for learning purposes.
-
----
-
-## 🤝 Contributing
-
-Pull requests are welcome! For major changes, please open an issue first.
-
----
-
-## 📧 Contact
-
-- GitHub: [@Arga-12](https://github.com/Arga-12)
-- Repository: [SimpleNotesSharingApp](https://github.com/Arga-12/SimpleNotesSharingApp)
-
----
-
-**Made with ❤️ using Golang, Next.js, and Docker**
+**Made by Argandull using Golang, Next.js, and Docker**
